@@ -1,0 +1,82 @@
+{% extends 'template.html' %}
+{% set title = 'Register/Login' %}
+
+{% block content %}
+
+<h1 class="mt-3">
+    Registration and Login Page
+</h1> 
+<hr>
+
+<p>Are you a student <mark> looking </mark> for work or company scouting for <mark> new ideas? </mark>.</p>
+
+<div class="row">
+<div class="col">
+    <h3> Register </h3>
+
+    <form>
+    
+        <div class="mb-3">
+            <label for="exampleInputEmail1" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="registerEmailInput" aria-describedby="emailHelp">
+        <div id="emailHelp" class="form-text">We'll never share your email with anyone else.</div>
+        </div>
+    
+        <div class="mb-3">
+            <label for="exampleInputUsername1" class="form-label">Username</label>
+            <input type="text" class="form-control" id="registerUsernameInput" aria-describedby="usernameHelp">
+        <div id="usernameHelp" class="form-text">Please be sensible</div>
+        </div>
+    
+        <label for="inputPassword5" class="form-label">Password</label>
+        <input type="password" id="registerPasswordInput" class="form-control" aria-describedby="passwordHelpBlock">
+        <div id="passwordHelpBlock" class="form-text mb-3">
+          Your password must be at least 10 characters long and contain at least one of the following characters: <mark> !£$%^&*() </mark>
+        </div>
+        
+        <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label">Confirm Password</label>
+            <input type="password" class="form-control" id="registerConfirmPasswordInput">
+        </div>
+        
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="registerIsStudent" checked>
+            <label class="form-check-label" for="registerIsStudent">Are you a student?</label>
+        </div>
+
+        <button type="submit" class="btn btn-primary mt-3" onclick="registerUser()">Register</button>
+      
+    </form> 
+</div>
+
+<div class="col">
+    <h3> Login </h3>
+
+    <form>
+    
+        <div class="mb-3">
+            <label for="exampleInputEmail1" class="form-label">Email address</label>
+            <input type="email" class="form-control" id="loginEmailInput" aria-describedby="emailHelp">
+        </div>
+
+        <div class="mb-3">
+            <label for="exampleInputPassword1" class="form-label mt-4"> Password</label>
+            <input type="password" class="form-control" id="loginPasswordInput">
+        </div>
+    
+        <button type="submit" class="btn btn-primary" onclick="loginUser()">Login</button>
+      
+    </form> 
+</div>
+</div>
+
+<script>
+    function registerUser(){
+        let email = document.getElementById("registerEmailInput").value;
+        let username = document.getElementById("usernameEmailInput").value;
+        let password = document.getElementById("")
+    }
+</script>
+
+
+{% endblock %}
