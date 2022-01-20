@@ -66,16 +66,31 @@
     
         <button type="submit" class="btn btn-primary" onclick="loginUser()">Login</button>
       
-    </form> 
+    </form>
 </div>
 </div>
 
 <script>
     function registerUser(){
+
+        // get data from input fields
         let email = document.getElementById("registerEmailInput").value;
-        let username = document.getElementById("usernameEmailInput").value;
-        let password = document.getElementById("")
+        let username = document.getElementById("registerUsernameInput").value;
+        let password = document.getElementById("registerPasswordInput").value;
+        let confirmPassword = document.getElementById("registerConfirmPasswordInput").value;
+
+        // data stored in JSON object to be sent
+        let data = {
+            email: email,
+            username: username,
+            password: password,
+            confirmPassword: confirmPassword
+        };
+
+        // send data
+        socket.emit("register_user", data);
     }
+
 </script>
 
 
