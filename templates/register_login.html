@@ -67,10 +67,10 @@
             <label for="exampleInputPassword1" class="form-label mt-4"> Password</label>
             <input type="password" class="form-control" id="loginPasswordInput">
         </div>
-    
-        <button type="submit" class="btn btn-primary" onclick="loginUser()">Login</button>
       
     </form>
+    
+    <button type="submit" class="btn btn-primary" onclick="loginUser()">Login</button>
 </div>
 </div>
 
@@ -82,25 +82,43 @@
         let username = document.getElementById("registerUsernameInput").value;
         let password = document.getElementById("registerPasswordInput").value;
         let confirmPassword = document.getElementById("registerConfirmPasswordInput").value;
+        let isStudent = document.getElementById("registerIsStudent").value;
 
         // data stored in JSON object to be sent
         let data = {
             email: email,
             username: username,
             password: password,
-            confirmPassword: confirmPassword
+            confirmPassword: confirmPassword,
+            isStudent: isStudent,
         };
 
         // send data
         socket.emit("register_user", data);
     }
 
-    socket.on("registration_succeeded", function(){
+    function loginUser(){
+
+        // get data from input fields
+        let email = document.getElementById("loginEmailInput").value;
+        let password = document.getElementById("loginPasswordInput").value;
+
+        // store data in JSON object to be sent
+        let data = {
+            email: email,
+            password: password
+        }
+
+        // send data
+        socket.emit("login_user", data)
+    }
+
+    socket.on("reglog_succeeded", function(){
         // redirect the user to the homepage
         window.location.href = "http://localhost:8080/homepage/";
     })
 
-    socket.on("registration_failed", function(data){
+    socket.on("reglog_failed", function(data){
         let alert_holder = document.getElementById("alert-holder");
         alert_holder.innerHTML =        `<div class="alert alert-danger d-flex align-items-center" role="alert">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-exclamation-triangle-fill flex-shrink-0 me-2" viewBox="0 0 16 16" role="img" aria-label="Warning:">

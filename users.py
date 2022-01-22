@@ -17,11 +17,12 @@ class User(object):
         return hashlib.sha512((password + salt).encode()).hexdigest(), salt
 
     @classmethod
-    def register(cls, email, username, password):
+    def register(cls, email, username, password, is_student):
         """ creates user and stores into User.database dictionary """
         if email in User.emails: return False, None
         salted_password, salt_string = User.salt_password(password)
-        new_user_object = cls(email, username)
+        if is_student: new_user_object = Student(email, username)
+        else: new_user_object = Company(email, username)
         User.database[(email, salted_password, salt_string)] = new_user_object
         return True, new_user_object
 
