@@ -75,9 +75,7 @@ def login_user(data):
         # save user object into session for later use
         session["user_object"] = user_object
         emit("reglog_succeeded")
-        print("LOGGED IN!")
     else:
-        print("ASDFSD")
         emit ("reglog_failed", {"details": "email or password incorrect"})
 
 

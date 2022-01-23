@@ -1,4 +1,7 @@
 import hashlib, uuid
+from tkinter import Place
+from optparse import TitledHelpFormatter
+from placement import *
 
 class User(object):
     """
@@ -41,16 +44,42 @@ class User(object):
 
 class Student(User):
     def __init__(self, email, username):
-        User.__init__(email, username)
+        User.__init__(self, email, username)
 
 class Company(User):
     def __init__(self, email, username):
-        User.__init__(email, username)
+        User.__init__(self, email, username)
+        self.placements = {} # title -> placement object
 
+    """ create and return Bool, new placement object """
+    def create_new_placement(self, title, description, date_range, location_tag, subject_tags):
+        # check for existing placement with the same name
+        if title in self.placements:
+            return False, None
+        else:
+            new_placement = Placement(title, description, self, date_range, location_tag, subject_tags)
+            self.placements[new_placement.title] = new_placement
+            return True, new_placement
 
+    """ edit placement given placement title and new values, return placement object """
+    def edit_placement(self, title, description = None, date_range = None, location_tag = None, subject_tags = None):
+        if not (title in self.placements): return None 
+        placement_object = self.placements[title]
+        if title: placement_object.title = title
+        if description: placement_object.description = description
+        if date_range: placement_object.date_range = date_range
+        if location_tag: placement_object.location_tag = location_tag
+        if subject_tags: placement_object.subject_tags = subject_tags
+        return placement_object
+
+    """ delete placement given placement title"""
+    def delete_placement(self, title):
+        if not (title in self.placements): return None
+        del self.placements[title]
+        
 if __name__ == "__main__":
-    new_user = User.register("name@email.com", "username1", "password")
-    new_user = User.register("name@email.com", "username2", "password")
-    requested_user = User.login("name@email.com", "password")
-    print(requested_user.username) # outputs username1
+    _, new_company = User.register("name@email.com", "username", "password123!", False)
+    new_placement = new_company.create_new_placement("Title", "Description", DateRange(Date(1,1,1), Date(2,2,2)), LocationTag("Berkshire"), [])
+    new_company.edit_placement("Title", "New Description")
+    print(new_company.placements["Title"].description) # outputs "New Description"
 
