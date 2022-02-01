@@ -17,6 +17,10 @@ class SubjectTag:
     @classmethod
     def create_new_subject_tag(cls, subject):
         cls.all_subject_tags.add(subject)
+    
+    # return a hashable dictionary summary of date
+    def json_summary(self):
+        return self.subject
 
 
 """ the county of a work experience """
@@ -29,6 +33,10 @@ class LocationTag:
     @classmethod
     def get_all_location_tags(cls):
         return cls.all_location_tags
+
+    # return a hashable dictionary summary of location tag
+    def json_summary(self):
+        return self.location
     
 
 """ date tag, stores day, month, year """
@@ -38,6 +46,9 @@ class Date:
         self.month = month
         self.year = year
 
+    # return a hashable dictionary summary of date
+    def json_summary(self):
+        return f"{self.day}/{self.month}/{self.year}"
 
 """ date range stores an interval of dates from start_date to end_date, caches duration for display purposes """
 class DateRange:
@@ -45,6 +56,13 @@ class DateRange:
         self.start_date = start_date
         self.end_date = end_date
         self.duration = 0
+
+    # return a hashable dictionary summary of date_range
+    def json_summary(self):
+        return {
+            "start_date": self.start_date.json_summary(),
+            "end_date": self.end_date.json_summary()
+        }
 
 
 """ stores work experience placements with DateRange, [SubjectTag] and Location tag """
@@ -56,4 +74,15 @@ class Placement:
         self.date_range = date_range
         self.location_tag = location_tag
         self.subject_tags = subject_tags
+
+    # return a hashable dictionary summary of the placement
+    def json_summary(self):
+        return {
+            "title": self.title,
+            "description": self.description,
+            "company": self.company.username,
+            "date_range_tag": self.date_range.json_summary(),
+            "location_tag": self.location_tag.json_summary(),
+            "subject_tags": [subject_tag.json_summary() for subject_tag in self.subject_tags]
+        }
     

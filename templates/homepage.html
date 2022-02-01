@@ -3,16 +3,260 @@
 
 {% block content %}
 
+<div class="row">
+
 <h1 class="mt-3">
-    Homepage
+    <span id = "username-container"></span>
 </h1> 
 <hr>
 
-<div class="row">
+<div class="col-6" id = "placements-container">
+
+    <h3> Currently offered experiences </h3>
+    <hr>
+
+</div>
+
+<div class="col-6">
+
+    <h3> Create / Edit Placements </h3>
+    <hr>
+
+    <form>
+
+        <!-- placement title input -->
+        <div class = "mb-3">
+            <label for="placement title" class="form-label">Title</label>
+            <input type="text" id="placementTitleInput" class="form-control" aria-describedby="placement title">
+            <div class="form-text">
+            The title should be a short phrase describing the work experience
+            </div>
+        </div>
+
+        <!-- placement description input -->
+        <div class = "mb-3">
+            <label for="placement description" class="form-label">Description</label>
+            <textarea class="form-control" id="placementDescriptionInput" rows="3"></textarea>
+            <div class="form-text">
+            Describe the key details of the placement in a few sentences
+            </div>
+        </div>
+
+        <!-- placement start & end dates -->
+        <div class = "row mb-3">
+            <div class = "col-6">
+                <label for="placement start date" class="form-label">Start Date</label>
+                <input type="date" id="placementStartDateInput" class="form-control" aria-describedby="placement start date">
+                <div class="form-text">
+                    Start date of work experience
+                </div>
+            </div>
+            <div class = "col-6">
+                <label for="placement end date" class="form-label">End Date</label>
+                <input type="date" id="placementEndDateInput" class="form-control" aria-describedby="placement end date">
+                <div class="form-text">
+                    End date of work experience
+                </div>
+            </div>
+        </div>
+
+        <!-- placement subject tags -->
+        <div class = "row mb-3">
+
+            <div class = "col-6 input-group">
+
+                <!-- subject tag dropdown -->
+                <input class="form-control" list="subjectTags" id="subjectTagInput" placeholder="Type to add subject tags...">
+                <datalist id="subjectTags">
+                    <option value="Mathematics">
+                    <option value="Marketing">
+                    <option value="Biology">
+                    <option value="Technology">
+                    <option value="Physics">
+                    <option value="Computing">
+                </datalist>    
+                            
+                <!-- add subject tag button -->
+                <div class="input-group-append">
+                    <button class="btn btn-outline-secondary" type="button">Add subject tag</button>
+                </div>
+
+            </div>
+            
+            <!-- subject tags displayed -->
+            <div class = "col-6 mt-3" id="subjectTagList">
+                <span class="badge rounded-pill bg-secondary me-1 subject-tag"> Mathematics </span>
+                <span class="badge rounded-pill bg-secondary me-1 subject-tag"> Biology </span>
+            </div>
+
+        </div>
+
+        <!-- placement location tags -->
+        <div class = "mb-3">
+
+            <!-- location tag dropdown -->
+            <input class="form-control" list="locationTags" id="locationTagInput" placeholder="Type to add location tag...">
+            <datalist id="locationTags">
+                <option value="Berkshire">
+                <option value="Oxfordshire">
+                <option value="Cambridgeshire">
+            </datalist>    
+
+        </div>
+
+        <!-- create and edit buttons -->
+        <div class = "row mb-3">
+            <!-- create button -->
+            <div class = "col-auto">
+                <button class="btn btn-primary" type="button" onclick="createPlacement()">Create Placement</button>
+            </div>
+            <!-- edit button -->
+            <div class = "col-auto">
+                <button class="btn btn-primary" type="button" onclick="editPlacement()">Edit Placement</button>
+            </div>
+        </div>
+
+
+    </form>
+
+</div>
+
+
 </div>
 
 <script>
 
+// placement form data into JSON object
+function collectPlacementData(){
+    let placementTitle = document.getElementById("placementTitleInput").value;
+    let placementDescription = document.getElementById("placementDescriptionInput").value;
+    let placementStartDate = document.getElementById("placementStartDateInput").value;
+    let placementEndDate = document.getElementById("placementEndDateInput").value;
+    let placementSubjectTagElements = document.getElementsByClassName("subject-tag");
+    let placementLocationTag = document.getElementById("locationTagInput").value;
+
+    // for subject tag, retrieve innerText
+    let placementSubjectTags = [];
+    for (let i=0; i < placementSubjectTagElements.length; i++){
+        let placementSubjectTag = placementSubjectTagElements[i].innerText;
+        placementSubjectTags.push(placementSubjectTag);
+    }
+
+    // return JSON object
+    return {
+        placementTitle: placementTitle,
+        placementDescription: placementDescription,
+        placementStartDate: placementStartDate,
+        placementEndDate: placementEndDate,
+        placementSubjectTags: placementSubjectTags,
+        placementLocationTag: placementLocationTag
+    }
+}
+
+// create placement function
+function createPlacement(){
+    // get JSON form data 
+    let JSON_form = collectPlacementData();
+    console.log(JSON_form);
+}
+
+// edit placement function
+function editPlacement(){
+    // get JSON form data 
+    let JSON_form = collectPlacementData();
+    console.log(JSON_form);
+}
+
+// request user username
+socket.emit("getUserUsername");
+
+// request user placements
+socket.emit("getUserPlacements");
+
+// handle the username
+socket.on("returnUserUsername", function(username){
+    // get username container
+    let usernameContainer = document.getElementById("username-container");
+    usernameContainer.innerText = username;
+})
+
+// handle the placements [json]
+socket.on("returnUserPlacements", function(placementsList){
+    // for each placement, create new element, add to container
+    for (let i=0; i < placementsList.length; i++){
+        // get parent element
+        let placementsContainer = document.getElementById("placements-container");
+        // create new element from data in list
+        let currentPlacementData = placementsList[i];
+        let currentPlacementElement = placementElement(currentPlacementData);
+        // add new element to placement list container HTML
+        placementsContainer.appendChild(currentPlacementElement);
+    }
+})
+
+// render json summary into placement element
+function placementElement(placementData){
+
+    // create element
+    let newPlacementElement = document.createElement("div");
+    newPlacementElement.classList = "card mb-3";
+    newPlacementElement.innerHTML = placementTemplate;
+
+    // fill information
+    newPlacementElement.getElementsByClassName("start-date")[0].innerText = placementData.date_range_tag.start_date;
+    newPlacementElement.getElementsByClassName("end-date")[0].innerText = placementData.date_range_tag.end_date;
+    newPlacementElement.getElementsByClassName("company-name")[0].innerText = placementData.company;
+
+    newPlacementElement.getElementsByClassName("placement-location")[0].innerText = placementData.location_tag;
+    newPlacementElement.getElementsByClassName("placement-title")[0].innerText = placementData.title;
+    newPlacementElement.getElementsByClassName("placement-description")[0].innerText = placementData.description;
+
+    // loop for each subject tag in placement
+    for (let i=0; i < placementData.subject_tags.length; i++){
+        let subjectTagElement = document.createElement("span");
+        subjectTagElement.classList = "badge rounded-pill bg-secondary me-1";
+        subjectTagElement.innerText = placementData.subject_tags[i];
+        newPlacementElement.getElementsByClassName("subject-tags")[0].appendChild(subjectTagElement);
+    }
+
+    return newPlacementElement;
+
+}
+
+
+// placement element template
+let placementTemplate = `
+
+<div class="card-header">
+    <div class="row">
+        <div class="col-8">
+            <h5><span class="placement-title"></span></h5>
+        </div>
+        <div class="col-4 text-end">
+            <span class="start-date"> </span> - <span class="end-date"></span>
+        </div>
+    </div>
+</div>
+
+<div class="card-body">
+    <h5 class="card-title"><span class="company-name"></span></h5>
+    <p class="card-text">
+        <span class="placement-description">
+    </p>
+
+    <a href="#" class="btn btn-primary me-2">Edit <i class="bi bi-pencil-square"></i></a>
+    <a href="#" class="btn btn-danger me-2">Delete <i class="bi bi-trash-fill"></i></a>
+    <a href="#" class="btn btn-success me-2">Save <i class="bi bi-bookmark-plus-fill"></i></a>
+
+    <!--a href="#" class="btn btn-primary me-2">Apply</a-->
+</div>
+
+<div class="card-footer">
+    <span class="badge rounded-pill bg-dark me-1"><span class="placement-location"></span></span>
+    <span class="subject-tags"></span>
+</div>
+
+`
 
 </script>
 

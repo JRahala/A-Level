@@ -1,11 +1,14 @@
 from flask import Flask
-from flask import render_template, redirect, url_for, session
+from flask import render_template, redirect, url_for, session, jsonify
 from flask_socketio import SocketIO, emit, send
-
+from flask_session import Session
 from users import *
 
 app = Flask(__name__)
-socketio = SocketIO(app)
+app.config["SECRET_KEY"] = "top_secret"         # secret key used for encryption purposes (will be changed after development)
+app.config["SESSION_TYPE"] = "filesystem"       # use flask session
+sess = Session(app)                             # use server side sessions
+socketio = SocketIO(app, manage_session=False)  # flask_socketio session uses flask session
 
 @app.route("/")
 def index():
@@ -52,12 +55,12 @@ def register_user(data):
         return 
     
     # did registration work
-    registration_succeeded, new_user_object = User.register(email, username, password, isStudent)
+    registration_succeeded, new_user_object, new_user_key = User.register(email, username, password, isStudent)
 
     # emit event if failed
     if (registration_succeeded): 
-        # save user object into session for later use
-        session["user_object"] = new_user_object
+        # save user object key into session for later use
+        session["user_key"] = new_user_key
         emit("reglog_succeeded")
     else:
         emit("reglog_failed", {"details": "email already used"})
@@ -70,10 +73,10 @@ def login_user(data):
     email = data["email"]
     password = data["password"]
 
-    logged_in_successfully, user_object = User.login(email, password)
+    logged_in_successfully, user_object, user_key = User.login(email, password)
     if (logged_in_successfully):
-        # save user object into session for later use
-        session["user_object"] = user_object
+        # save user object key into session for later use
+        session["user_key"] = user_key
         emit("reglog_succeeded")
     else:
         emit ("reglog_failed", {"details": "email or password incorrect"})
@@ -81,7 +84,47 @@ def login_user(data):
 
 @app.route("/homepage/")
 def homepage():
+    # AUTOMATED!
+    _, user_object, user_key = User.register("rahala.j@etoncollege.org.uk", "Jasamrit", "Password123!", False)
+
+    user_object.create_new_placement(
+        title = "Mathematics Placement", 
+        description = "This placement is to do with maths and data science",
+        date_range = DateRange(
+            start_date = Date(1,1,1),
+            end_date = Date(2,3,1)
+        ),
+        location_tag = LocationTag("Berkshire"),
+        subject_tags = [SubjectTag("Mathematics"), SubjectTag("Data"), SubjectTag("Excel")]
+    )
+
+    user_object.create_new_placement(
+        title = "1234", 
+        description = "^%$£",
+        date_range = DateRange(
+            start_date = Date(1,1,1),
+            end_date = Date(1,1,99)
+        ),
+        location_tag = LocationTag("Oxfordshire"),
+        subject_tags = []
+    )
+
+    session["user_key"] = user_key
     return render_template("homepage.html")
+
+# return the users username
+@socketio.on("getUserUsername")
+def get_user_username():
+    # retrieve user object
+    user_object = User.database[session["user_key"]]
+    emit("returnUserUsername", user_object.username)
+
+# return the current users placements
+@socketio.on("getUserPlacements")
+def get_user_placements():
+    # retrieve user object
+    user_object = User.database[session["user_key"]]
+    emit("returnUserPlacements", [user_object.placements[placement_title].json_summary() for placement_title in user_object.placements])
 
 socketio.run(app, host = "0.0.0.0", port = 8080, debug = True)
 

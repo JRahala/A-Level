@@ -1,6 +1,4 @@
 import hashlib, uuid
-from tkinter import Place
-from optparse import TitledHelpFormatter
 from placement import *
 
 class User(object):
@@ -27,7 +25,7 @@ class User(object):
         if is_student: new_user_object = Student(email, username)
         else: new_user_object = Company(email, username)
         User.database[(email, salted_password, salt_string)] = new_user_object
-        return True, new_user_object
+        return True, new_user_object, (email, salted_password, salt_string)
 
     @staticmethod
     def login(email, password):
@@ -37,10 +35,10 @@ class User(object):
             if key_email != email: continue
             if salted_password == User.salt_password(password, salt_string)[0]:
                 # correct login -> true, user object
-                return True, User.database[(email, salted_password, salt_string)]
+                return True, User.database[(email, salted_password, salt_string)], (email, salted_password, salt_string)
             else:
                 # incorrect login -> false, none
-                return False, None
+                return False, None, (email, salted_password, salt_string)
 
 class Student(User):
     def __init__(self, email, username):
