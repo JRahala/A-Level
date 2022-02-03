@@ -126,5 +126,113 @@ def get_user_placements():
     user_object = User.database[session["user_key"]]
     emit("returnUserPlacements", [user_object.placements[placement_title].json_summary() for placement_title in user_object.placements])
 
+# create new placement using the placement form in homepage
+@socketio.on("createPlacementForm")
+def create_placement_form(data):
+    
+    # extract user object from session
+    user_object = User.database[session["user_key"]]
+
+    # retrieve placement data to check if all fields properly filled in 
+    title = data["placementTitle"]
+    description = data["placementDescription"]
+    start_date = data["placementStartDate"]
+    end_date = data["placementEndDate"]
+    subject_tags = data["placementSubjectTags"]
+    location_tag = data["placementLocationTag"]
+
+    # parse data input and create date range object
+    start_year, start_month, start_day = start_date.split("-")
+    start_date = Date(
+        int(start_day),
+        int(start_month),
+        int(start_year)
+    )
+
+    end_year, end_month, end_day = end_date.split("-")
+    end_date = Date(
+        int(end_day),
+        int(end_month),
+        int(end_year)
+    )
+
+    date_range = DateRange(start_date, end_date)
+        
+    # create subject tag object(s)
+    subject_tags = [SubjectTag(subject_tag) for subject_tag in subject_tags]
+
+    # create location tag object
+    location_tag = LocationTag(location_tag)
+    
+    # try to create placement using the data object
+    successful, new_placement_object = user_object.create_new_placement(title, description, date_range, location_tag, subject_tags)
+    if not (successful):
+        emit("placementFormAlert", {"successful": False, "message": "placement name already used"})
+    
+    else:
+        # refresh page on placement creation
+        emit("placementFormAlert", {"successful": True, "message": "placement succesfully created"})
+        emit("refreshEvent")
+
+@socketio.on("editPlacementForm")
+def edit_placement_form(data):
+
+    # extract user object from session
+    user_object = User.database[session["user_key"]]
+
+    # retrieve placement data to check if all fields properly filled in 
+    title = data["placementTitle"]
+    description = data["placementDescription"]
+    start_date = data["placementStartDate"]
+    end_date = data["placementEndDate"]
+    subject_tags = data["placementSubjectTags"]
+    location_tag = data["placementLocationTag"]
+
+    # parse data input and create date range object
+    start_year, start_month, start_day = start_date.split("-")
+    start_date = Date(
+        int(start_day),
+        int(start_month),
+        int(start_year)
+    )
+
+    end_year, end_month, end_day = end_date.split("-")
+    end_date = Date(
+        int(end_day),
+        int(end_month),
+        int(end_year)
+    )
+
+    date_range = DateRange(start_date, end_date)
+        
+    # create subject tag object(s)
+    subject_tags = [SubjectTag(subject_tag) for subject_tag in subject_tags]
+
+    # create location tag object
+    location_tag = LocationTag(location_tag)
+    
+    # try to create placement using the data object
+    successful, new_placement_object = user_object.edit_placement(title, description, date_range, location_tag, subject_tags)
+    if not (successful):
+        emit("placementFormAlert", {"successful": False, "message": "placement does not exist"})
+    
+    else:
+        # refresh the page when placement successfully edited
+        emit("placementFormAlert", {"successful": True, "message": "placement succesfully edited"})
+        emit("refreshEvent")
+
+
+@socketio.on("deletePlacementForm")
+def delete_placement_form(placement_title):
+
+    # extract user object from session
+    user_object = User.database[session["user_key"]]
+
+    # attempt to delete placement 
+    user_object.delete_placement(placement_title)
+
+    # refresh the page event
+    emit("refreshEvent")
+
 socketio.run(app, host = "0.0.0.0", port = 8080, debug = True)
 

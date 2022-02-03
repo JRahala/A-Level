@@ -7,6 +7,7 @@ class SubjectTag:
 
     def __init__(self, subject):
         self.subject = subject
+        SubjectTag.create_new_subject_tag(self)
     
     """ used for autocomplete request from client.html """
     @classmethod
@@ -48,7 +49,18 @@ class Date:
 
     # return a hashable dictionary summary of date
     def json_summary(self):
-        return f"{self.day}/{self.month}/{self.year}"
+        if self.year <= 9:
+            text_year = "200" + str(self.year)
+        else:
+            text_year = "20" + str(self.year)
+
+        if self.month <= 9:
+            text_month = "0" + str(self.month)
+        
+        if self.day <= 9:
+            text_day = "0" + str(self.day)
+        
+        return f"{text_year}-{text_month}-{text_day}"
 
 """ date range stores an interval of dates from start_date to end_date, caches duration for display purposes """
 class DateRange:

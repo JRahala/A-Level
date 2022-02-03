@@ -118,6 +118,11 @@
 
 
     </form>
+    
+    <!-- show alerts here -->
+    <div id="placementFormAlertContainer" class="mt-3">
+
+    </div>
 
 </div>
 
@@ -125,6 +130,82 @@
 </div>
 
 <script>
+
+// refresh event 
+socket.on("refreshEvent", function(){
+    // redirect the user to current page
+    window.location.href = "http://localhost:8080/homepage/";
+})
+
+// return placement data from placement element in JSON format
+function placementElementToJSON(placementElement){
+    let placementTitle = placementElement.getElementsByClassName("placement-title")[0].innerText;
+    let placementDescription = placementElement.getElementsByClassName("placement-description")[0].innerText;
+    let placementStartDate = placementElement.getElementsByClassName("start-date")[0].innerText;
+    let placementEndDate = placementElement.getElementsByClassName("end-date")[0].innerText;
+    let placementSubjectTagElements = placementElement.getElementsByClassName("subject-tag"); 
+    let placementLocationTag = placementElement.getElementsByClassName("placement-location")[0].innerText;
+
+    // retrieve the strings from subject tags
+    let placementSubjectTags = [];
+    for (let i=0; i<placementSubjectTagElements.length; i++){
+        let placementSubjectTag = placementSubjectTagElements[i].innerText;
+        placementSubjectTags.push(placementSubjectTag)
+    }
+
+    // return JSON element
+    return {
+        placementTitle: placementTitle,
+        placementDescription: placementDescription,
+        placementStartDate: placementStartDate,
+        placementEndDate: placementEndDate,
+        placementSubjectTags: placementSubjectTags,
+        placementLocationTag: placementLocationTag
+    }
+}
+
+// send request to delete placement to the server
+function deletePlacementForm(element){
+    
+    // retrieve data from clicked element
+    let placementElement = element.parentNode.parentNode;
+    let placementJSON = placementElementToJSON(placementElement);
+
+    // send placement title to server for deletion
+    socket.emit("deletePlacementForm", placementJSON.placementTitle);
+
+}
+
+// load placement data into form
+function loadPlacementToForm(element){
+
+    // retrieve data from clicked element
+    let placementElement = element.parentElement.parentElement;
+    let placementJSON = placementElementToJSON(placementElement);
+
+    console.log(placementJSON);
+
+    // load data into the form
+    document.getElementById("placementTitleInput").value = placementJSON.placementTitle;
+    document.getElementById("placementDescriptionInput").value = placementJSON.placementDescription;
+    document.getElementById("placementStartDateInput").value = placementJSON.placementStartDate;
+    document.getElementById("placementEndDateInput").value = placementJSON.placementEndDate;
+    document.getElementById("locationTagInput").value = placementJSON.placementLocationTag;
+
+    placementSubjectTagInputsList = document.getElementById("subjectTagList");
+    // load subject tags into placement form
+    for (let i=0; i<placementJSON.placementSubjectTags; i++){
+        // create new subject tag
+        let newSubjectTag = document.createElement("span");
+        newSubjectTag.classList = "badge rounded-pill bg-secondary me-1 subject-tag";
+        newSubjectTag.innerText = placementJSON.placementSubjectTags[i];
+        // add new subject tag to list in input field
+        placementSubjectTagInputsList.appendChild(
+            newSubjectTag
+        )
+    }
+
+}
 
 // placement form data into JSON object
 function collectPlacementData(){
@@ -157,8 +238,47 @@ function collectPlacementData(){
 function createPlacement(){
     // get JSON form data 
     let JSON_form = collectPlacementData();
-    console.log(JSON_form);
+    // send JSON data to server createPlacementForm function
+    socket.emit("createPlacementForm", JSON_form);
 }
+
+// sucessful alert message
+let successfulPlacementFormAlertElement = `
+<div class="alert alert-success d-flex align-items-center" role="alert">
+    <i class="bi bi-check-circle-fill"></i><div>
+    <span class="alert-message"></span>
+  </div>
+</div>
+`
+
+// warning alert message
+let warningPlacementFormAlertElement = `
+<div class="alert alert-danger d-flex align-items-center" role="alert">
+    <i class="bi bi-exclamation-diamond-fill"></i>
+    <div>
+    <span class="alert-message"></span>
+  </div>
+</div>
+`
+
+// show alert when recieve placement response
+socket.on("placementFormAlert", function(data){
+    let placementFormAlertContainer = document.getElementById("placementFormAlertContainer");
+    // remove everything in the placement alert container
+    placementFormAlertContainer.innerHTML = "";
+    // is successful alert / something went wrong?
+    let newAlert = document.createElement("div");
+    if (data.successful == true){
+        newAlert.innerHTML = successfulPlacementFormAlertElement;
+    } else {
+        newAlert.innerHTML = warningPlacementFormAlertElement;
+    }
+    console.log(newAlert);
+    // message in data
+    newAlert.getElementsByClassName("alert-message")[0].innerText = data.message;
+    // insert element into placement alert container
+    placementFormAlertContainer.appendChild(newAlert);
+})
 
 // edit placement function
 function editPlacement(){
@@ -214,7 +334,7 @@ function placementElement(placementData){
     // loop for each subject tag in placement
     for (let i=0; i < placementData.subject_tags.length; i++){
         let subjectTagElement = document.createElement("span");
-        subjectTagElement.classList = "badge rounded-pill bg-secondary me-1";
+        subjectTagElement.classList = "badge rounded-pill bg-secondary me-1 subject-tag";
         subjectTagElement.innerText = placementData.subject_tags[i];
         newPlacementElement.getElementsByClassName("subject-tags")[0].appendChild(subjectTagElement);
     }
@@ -244,8 +364,8 @@ let placementTemplate = `
         <span class="placement-description">
     </p>
 
-    <a href="#" class="btn btn-primary me-2">Edit <i class="bi bi-pencil-square"></i></a>
-    <a href="#" class="btn btn-danger me-2">Delete <i class="bi bi-trash-fill"></i></a>
+    <a href="#" class="btn btn-primary me-2" onclick="loadPlacementToForm(this)">Edit <i class="bi bi-pencil-square"></i></a>
+    <a href="#" class="btn btn-danger me-2" onclick="deletePlacementForm(this)">Delete <i class="bi bi-trash-fill"></i></a>
     <a href="#" class="btn btn-success me-2">Save <i class="bi bi-bookmark-plus-fill"></i></a>
 
     <!--a href="#" class="btn btn-primary me-2">Apply</a-->
