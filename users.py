@@ -56,6 +56,8 @@ class Company(User):
             return False, None
         else:
             new_placement = Placement(title, description, self, date_range, location_tag, subject_tags)
+            # add new placement to Placement.global_placements dictionary
+            Placement.insert_subject_trie(self.username, title, new_placement)
             self.placements[new_placement.title] = new_placement
             return True, new_placement
 
@@ -73,6 +75,11 @@ class Company(User):
     """ delete placement given placement title"""
     def delete_placement(self, title):
         if not (title in self.placements): return None
+        # retrive current placement
+        current_placement = self.placements[title]
+        # remove from the Placement.global_placements dictionary and the Placement.subject_trie
+        Placement.delete_placement(self.username, title)
+        # remove company.placements
         del self.placements[title]
         
 if __name__ == "__main__":
