@@ -1,0 +1,48 @@
+{% extends 'template.html' %}
+{% set title = 'Saved Placements' %}
+
+{% block content %}
+
+<div class="row">
+
+    <h1 class="mt-3">
+        Saved placements
+    </h1> 
+    <hr>
+    
+    <div class="col-12" id="savedPlacementsContainer">
+        <!-- saved placements go here -->
+    </div>
+
+</div>
+
+<script>
+
+// retrieve all saved placements in an array of JSON
+function retrieveSavedPlacements(){
+    socket.emit("retrieveSavedPlacements")
+}
+
+// on retrieve placements load placements into savedPlacementsContainer
+socket.on("displaySavedPlacements", function(placementsData){
+    placementsArray = placementsData.placementsArray;
+    // get container for placement HTML
+    let savedPlacementsContainer = document.getElementById("savedPlacementsContainer");
+    // for each placement, create HTML 
+    for (let index = 0; index < placementsArray.length; index++){
+        // load HTML into savedPlacementsContainer
+        let currentPlacement = placementsArray[index];
+        let newPlacementHTML = placementElement(currentPlacement);
+        savedPlacementsContainer.appendChild(newPlacementHTML);
+        console.log(newPlacementHTML);
+    }
+})
+
+// retrieve saved placements after page has loaded
+document.addEventListener('DOMContentLoaded', function() {
+   retrieveSavedPlacements();
+}, false);
+
+</script>
+
+{% endblock %}

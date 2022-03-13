@@ -1,0 +1,108 @@
+{% extends 'template.html' %}
+{% set title = 'Notifications' %}
+{% block content %}
+<div class="row">
+
+    <h1 class="mt-3">
+        <span id="companyName">Notifications</span>
+    </h1>
+
+    <hr class="mt-2">
+    <div id="notificationContainer">
+    <div class="row">
+        <div class="card">
+            <div class="card-body">
+                <p class="card-text"><small class="text-muted"></small></p>
+                <h5 class="card-title"></h5>
+                <h6 class="card-subtitle mb-2 text-muted"></h6>
+                <p class="card-text"></p>
+            </div>
+        </div>
+    </div>
+    </div>
+
+</div>
+
+
+<script>
+
+// request notifications from server
+function notificationRequest(){
+    socket.emit("notificationRequest");
+}
+
+// handle notification array response from server
+socket.on("notificationResponse", function(data){
+    // get notification container
+    let notificationContainer = document.getElementById("notificationContainer");
+    notificationContainer.innerHTML = "";
+
+    for (let index = 0; index < data.notifications.length; index++){
+        // create new notification element
+        let newNotificationElement = notificationElement(data.notifications[index]);
+        // add new notification element to container
+        notificationContainer.appendChild(newNotificationElement);
+    }
+})
+
+// generate notification element
+function notificationElement(notificationArray){
+    // parse array
+    let title = notificationArray[0];
+    let subtitle = notificationArray[1];
+    let date = notificationArray[2];
+    let detail = notificationArray[3];
+
+    // create HTML card
+    let notificationElement = document.createElement("div");
+    notificationElement.classList = "row mt-2";
+
+    let notificationInner = document.createElement("div");
+    notificationInner.classList = "card";
+
+    let notificationBody = document.createElement("div");
+    notificationBody.classList = "card-body";
+    
+    // fill in date
+    let notificationDate = document.createElement("p");
+    notificationDate.classList = "card-text";
+
+    let notificationDateTextSmall = document.createElement("small");
+    notificationDateTextSmall.classList = "text-muted";
+    notificationDateTextSmall.innerText = date;
+
+    // fill in title
+    let notificationTitle = document.createElement("h5");
+    notificationTitle.classList = "card-title";
+    notificationTitle.innerText = title;
+    
+    // fill in subtitle
+    let notificationSubtitle = document.createElement("h6");
+    notificationSubtitle.classList = "card-subtitle mb-2 text-muted";
+    notificationSubtitle.innerText = subtitle;
+
+    // fill in detail
+    let notificationDetail = document.createElement("p");
+    notificationDetail.classList = "card-text";
+    notificationDetail.innerText = detail;
+
+    // append into one element
+    notificationDate.appendChild(notificationDateTextSmall);
+    notificationBody.appendChild(notificationDate);
+    notificationBody.appendChild(notificationTitle);
+    notificationBody.appendChild(notificationSubtitle);
+    notificationBody.appendChild(notificationDetail);
+    notificationInner.appendChild(notificationBody);
+    notificationElement.appendChild(notificationInner);
+
+    // return HTML element
+    return notificationElement;
+}
+
+// retrieve notifications after page load
+document.addEventListener('DOMContentLoaded', function(){
+    notificationRequest();
+}, false);
+
+</script>
+{% endblock %}

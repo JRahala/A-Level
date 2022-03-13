@@ -2,11 +2,11 @@
 from datetime import date
 import math
 import pickle
+from data_structures import *
 
-from numpy import place
-
+""" Subject Tag class: subject area of work experience """
 class SubjectTag:
-    all_subject_tags = set() # stores all subjects tag strings ever
+    all_subject_tags = set() # stores all subjects tag strings
 
     def __init__(self, subject):
         self.subject = subject
@@ -27,7 +27,7 @@ class SubjectTag:
         return self.subject
 
 
-""" the county of a work experience """
+""" Location Tag class: the county of a work experience """
 class LocationTag:
     distance_dictionary = {}
     def __init__(self, location):
@@ -64,7 +64,7 @@ class LocationTag:
         right_index = len(LocationTag.distance_dictionary[city_name])
 
         while left_index < right_index:
-            print(left_index, right_index)
+            # print(left_index, right_index)
             middle_index = (left_index + right_index) // 2
             if LocationTag.distance_dictionary[city_name][middle_index][1] <= range_m:
                 left_index = middle_index + 1
@@ -78,7 +78,7 @@ file = open("distance_dictionary.pickle",'rb')
 LocationTag.distance_dictionary = pickle.load(file)
 file.close()
 
-""" date tag, stores day, month, year """
+""" Date Tag class: stores day, month, year """
 class Date:
     def __init__(self, day, month, year):
         self.day = day
@@ -130,7 +130,7 @@ class Date:
 
         return f"{text_year}-{text_month}-{text_day}"
 
-""" date range stores an interval of dates from start_date to end_date, caches duration for display purposes """
+""" Date Range class: stores an interval of dates from start_date to end_date, caches duration for display purposes """
 class DateRange:
     def __init__(self, start_date, end_date):
         # switch dates if the start date comes after the end date
@@ -164,7 +164,7 @@ class DateRange:
 
         # check for full-overlap
         if (range_a.end_date.duration() > range_b.end_date.duration()):
-            return DateRange(Date(range_b.start_date), Date(range_b.end_date))
+            return DateRange(range_b.start_date, range_b.end_date)
 
         # partial overlap
         return DateRange(range_b.start_date, range_a.end_date) 
@@ -173,6 +173,7 @@ class DateRange:
 class Placement:
     
     # Create global placement dictionary for all users to access read only placement json_summaries
+    # reference using(company_name, placement_title)
     global_placements = {}
 
     def __init__(self, title, description, company, date_range, location_tag, subject_tags):
@@ -182,6 +183,7 @@ class Placement:
         self.date_range = date_range
         self.location_tag = location_tag
         self.subject_tags = subject_tags
+        self.applied_students = set()
 
     # return a read only json_summary of placement 
     @staticmethod
@@ -217,29 +219,36 @@ class Placement:
     def search_subject_trie(subject_tags):
         return Placement.subject_trie.search(filters = [subject_tag.subject for subject_tag in subject_tags])
 
+    # dirtysearch for a placement using the subject_trie via subject_tags: [SubjectTag()]
+    @staticmethod
+    def dirty_search_subject_trie(subject_tags):
+        return Placement.subject_trie.dirty_search(filters = [subject_tag.subject for subject_tag in subject_tags])
+
     # filter placements by date range and locations
     @staticmethod
     def filter_placements(placements_list, ideal_date_range, ideal_location, location_range):
 
-        # get locations that are within range
-        allowed_locations = LocationTag.get_locations_within(ideal_location.location, location_range)
+        # get locations that are within range, take first element is place, second element is distance
+        allowed_locations = [location_tag.location[0] for location_tag in LocationTag.get_locations_within(ideal_location.location, location_range)]
 
         # iterate through placements_list
         index = 0
         while index < len(placements_list):
             current_placement = placements_list[index]
+            
             # remove all placements that do not overlap with ideal_date_range
-            if DateRange.overlap(ideal_date_range, current_placement.date_range).duration <= 0:
+            if DateRange.overlap(ideal_date_range, current_placement.date_range).duration() <= 0:
                 placements_list.pop(index)
+                
             # remove all placements that are too far away from location_range
-            elif not (current_placement.location_tag in allowed_locations):
+            if not (current_placement.location_tag.location in allowed_locations):
                 placements_list.pop(index)
+                
             else:
                 index += 1
 
         # return remaining placements
         return placements_list
-
 
 
     # return a hashable dictionary summary of the placement
@@ -252,94 +261,9 @@ class Placement:
             "location_tag": self.location_tag.json_summary(),
             "subject_tags": [subject_tag.json_summary() for subject_tag in self.subject_tags]
         }
-    
-""" Node class for Trie """
-class TrieNode:
-    def __init__(self):
-        self.value = set()
-        self.children = {}
-
-""" Class containing Trie functions and root node """
-class Trie:
-    def __init__(self):
-        self.root_node = TrieNode()
-
-    # insert new value into trie with filters 
-    def insert(self, new_value, filters):
-        # start from the root of the trie
-        current_node = self.root_node
-        # iterate through all filters (alphabetically)
-        filters = sorted(filters)
-        for current_filter in filters:
-            # does a trie node exist, with the filter?
-            if current_filter in current_node.children:
-                current_node = current_node.children[current_filter]
-            # else create a new node
-            else:
-                current_node.children[current_filter] = TrieNode()
-                current_node = current_node.children[current_filter]
-        # add new_value to current_node
-        current_node.value.add(new_value)
-
-    # return list of value given filters
-    def search(self, filters):
-        # start from the root of the trie
-        current_node = self.root_node
-        # iterate through all filters (alphabetically)
-        filters = sorted(filters)
-        for current_filter in filters:
-            # does a trie node exist, with the filter?
-            if current_filter in current_node.children:
-                current_node = current_node.children[current_filter]
-            # else return empty list
-            else:
-                return []
-
-        # dfs search for all nodes below current node
-        def dfs(node):
-            # add values of current node
-            search_results = list(node.value)
-            # search child nodes
-            for key in node.children:
-                search_results += dfs(node.children[key])
-            return search_results
-
-        return dfs(current_node)
-
-    # delete value given value and filters
-    def delete(self, value, filters):
-        # start from the root of the trie
-        current_node = self.root_node
-        # iterate through all filters (alphabetically)
-        filters = sorted(filters)
-        for current_filter in filters:
-            # does a trie node exist, with the filter?
-            if current_filter in current_node.children:
-                current_node = current_node.children[current_filter]
-            # else return None
-            else:
-                return None
-        # remove value from current_node.value
-        current_node.value.discard(value)
-        return None
-
-    # peek at the structure using recursive depth first search
-    def peek(self):
-        def dfs(node, layer):
-            # print values at current node
-            print("-" * layer * 10, end="")
-            print([value for value in node.value])
-            # search child nodes
-            for key in node.children:
-                dfs(node.children[key], layer + 1)
-        # start serch at root node
-        dfs(self.root_node, 1)
-    
 
 # Create subject trie inside placement class
 Placement.subject_trie = Trie()
-
-
 
 if __name__ == "__main__":
     pass

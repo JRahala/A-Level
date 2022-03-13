@@ -1,0 +1,148 @@
+{% extends 'template.html' %}
+{% set title = 'Messages' %}
+
+{% block content %}
+
+<div class="row">
+
+    <h1 class="mt-3">
+        Messages
+    </h1> 
+    <hr>
+    
+    <div class="row">
+        <div class="list-group col-2" id="messagersContainer">
+            <!-- users load here -->
+        </div>
+
+        <div class="card col-10" style="height:75vh">
+            <div class="card-body">
+                <h5 class="card-title"> <span id="messagerUsername"> </span> </h5>
+                <h6 class="card-subtitle mb-2 text-muted"> Last online: <span id="messagerLastOnline"> </span> </h6>
+                <hr>
+                <h5 class="card-text" id="messageContainer"> 
+                    <!-- messages go here -->
+                </h5>
+            </div>
+            <div class="input-group mb-3">
+                <!-- message input here -->
+                <input type="text" id="messageInput" class="form-control" placeholder="Type a message here..." aria-label="Message input" aria-describedby="button-addon2">
+                <button class="btn btn-primary" type="button" id="button-addon2" onclick = sendMessage()>Send <i class="bi bi-send-fill"></i></button>
+              </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+// render message being sent or recieved
+function messageElement(messageText, isRecieved){
+    // create messageHTML
+    let messageHTML = document.createElement("span");
+    // style element when recieving
+    if (isRecieved){
+        messageHTML.classList = "badge bg-secondary mt-1";
+    }
+    // style element when sending
+    else{
+        messageHTML.classList = "badge bg-primary mt-1 float-end";
+    }
+    messageHTML.innerText = messageText;
+    return messageHTML
+}
+
+// load messager data into user sidebar
+socket.on("retrievedMessagers", function(data){
+    // button container for user sidebar
+    let userButtonContainer = document.getElementById("messagersContainer");
+    userButtonContainer.innerHTML = "";
+    // for each username and email in array, create new button
+    for (let index = 0; index < data.length; index++){
+        // get user json for button
+        let other_json = data[index];
+        // create new user button element
+        let other_element = document.createElement("button");
+        other_element.classList = "list-group-item list-group-item-action messager";
+        other_element.onclick = activateButton(other_element);
+        // add username to button element
+        other_element.innerText = other_json["username"];
+        // add email as the id of the element
+        other_element.id = other_json["email"];
+        // add element to the button container
+        userButtonContainer.appendChild(other_element);
+    }
+    // if array is non zero, set the first element in the buttons to the active button
+    if (data.length != 0){
+        let firstUserButton = document.getElementsByClassName("messager")[0];
+        activateButton(firstUserButton);
+    }
+});
+
+// set the button as active, "deactivate other buttons" and load messages
+function activateButton(element){
+    // set all other button element to deactive
+    let userButtons = document.getElementsByClassName("messager");
+    for (let index = 0; index < userButtons.length; index++){
+        userButtons[index].classList = "list-group-item list-group-item-action messager";
+    }
+    // set active button to "active"
+    element.classList = "list-group-item list-group-item-action messager active";
+    // load messages of the selected button
+    loadMessages(element);
+}
+
+// loadMessages of given element button
+function loadMessages(element){
+    // load messages
+    socket.emit("retrieveMessages");
+    // load user details
+    socket.emit("retrieveMessagerDetails");
+};
+
+// load details of user
+socket.on("retrievedMessagerDetails", function(data){
+    document.getElementById("messagerUsername").innerText = data.username;
+    document.getElementById("messagerLastOnline").innerText = data.last_online;
+});
+
+// given message texts, load HTML elements
+socket.on("retrievedMessages", function(message_array){
+    // clear all message from the list
+    let messageContainer = document.getElementById("messageContainer");
+    messageContainer.innerHTML = "";
+    for (let index = message_array.length; index >= 0; index--){
+        // create message element
+        let currentElement = messageElement(message_array[index][0], message_array[index][1]);
+        // add message element to the message container at end
+        messageContainer.appendChild(currentElement);
+    }
+})
+
+// retrieve all messager usernames and emails from server
+function retrieveMessagers(){
+    socket.emit("retrieveMessagers");
+}
+
+// retrieve messager details on page load
+document.addEventListener('DOMContentLoaded', function() {
+   retrieveMessagers();
+}, false);
+
+// send message on button click 
+function sendMessage(){
+    // retrieve text in input field
+    let messageText = document.getElementById("messageInput").value;
+    // get current user email
+    let userEmail = document.getElementsByClassName("active").id;
+    // send socket server request
+    socket.emit("sendMessage", {"email": userEmail, "msg": messageText});
+    // add message to the current chat
+    let messageContainer = document.getElementById("messageContainer");
+    let newMessage = messageElement(messageText, 0);
+    messageContainer.appendChild(newMessage);
+};
+
+</script> 
+
+{% endblock %}

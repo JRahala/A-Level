@@ -14,13 +14,11 @@ for row in city_data[1:]:
     city_name, latitude, longitude = row.split(",")[0:3]
     # have already seen city?
     if (city_name in seen_counties): continue
-    # add city to seen counties
+    # add city to seen cities
     seen_counties.add(city_name)
     # add city data to list
     counties.append([city_name, float(latitude), float(longitude)])
     
-#[print(x) for x in counties]
-
 import math
 
 # dict[city_name] = list((other_city_name, distance to other_city))

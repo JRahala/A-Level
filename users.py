@@ -1,5 +1,7 @@
 import hashlib, uuid
 from placement import *
+from data_structures import *
+from datetime import datetime
 
 class User(object):
     """
@@ -7,9 +9,16 @@ class User(object):
     """
     database = {}
     emails = set()
+
     def __init__(self, email, username):
         self.email = email
         self.username = username
+        self.saved_placements = Stack() # save placements onto stack
+        self.notifications_stack = Stack() # save notifications onto stack
+        self.message_dictionary = {} # email -> stack(), user object
+        self.last_online = "" # last online (on messages)
+        self.follow_set = set() # set of people objects being followed by user
+        self.followed_by = set() # set of people who follow user
 
     @staticmethod
     def salt_password(password, salt = None):
@@ -39,15 +48,30 @@ class User(object):
             else:
                 # incorrect login -> false, none
                 return False, None, (email, salted_password, salt_string)
+        return False, None, (None, None, None)
+
+    # save placement using title, company onto save_placements stack
+    def save_placement(self, company_name, placement_title):
+        # reference the placement
+        current_placement = Placement.global_placements[(company_name, placement_title)]
+        # add reference to the placement under saved placements
+        self.saved_placements.push(current_placement)
 
 class Student(User):
+    """ Student User subclass """
     def __init__(self, email, username):
         User.__init__(self, email, username)
+        self.applied_placements = Stack()
 
 class Company(User):
+    """ Company User subclass """
+    # retrieve the company object given the name of the company (for public information)
+    name_to_object = {}
+
     def __init__(self, email, username):
         User.__init__(self, email, username)
         self.placements = {} # title -> placement object
+        Company.name_to_object[username] = self # store reference to object under global dictionary
 
     """ create and return Bool, new placement object """
     def create_new_placement(self, title, description, date_range, location_tag, subject_tags):
@@ -59,22 +83,30 @@ class Company(User):
             # add new placement to Placement.global_placements dictionary
             Placement.insert_subject_trie(self.username, title, new_placement)
             self.placements[new_placement.title] = new_placement
+            # send notifications
+            self.notifications_stack.push(["New placement created '" + title + "'", "New placement", datetime.today().strftime("%Y-%m-%d"), "Created new placement '" + title + "'"])
+            for student in self.followed_by:
+                student.notifications_stack.push(["New placement company '" + self.username  + "'", "New placement", datetime.today().strftime("%Y-%m-%d"), "New placement '" + title + "' from company '" + self.username + "'"])
             return True, new_placement
 
     """ edit placement given placement title and new values, return placement object """
     def edit_placement(self, title, description = None, date_range = None, location_tag = None, subject_tags = None):
-        if not (title in self.placements): return None 
+        if not (title in self.placements): return False, None 
         placement_object = self.placements[title]
         if title: placement_object.title = title
         if description: placement_object.description = description
         if date_range: placement_object.date_range = date_range
         if location_tag: placement_object.location_tag = location_tag
         if subject_tags: placement_object.subject_tags = subject_tags
-        return placement_object
+        return True, placement_object
 
     """ delete placement given placement title"""
     def delete_placement(self, title):
         if not (title in self.placements): return None
+        # notifications
+        self.notifications_stack.push(["Placement deleted '" + title + "'", "Deleted placement", datetime.today().strftime("%Y-%m-%d"), "Deleted placement '" + title + "'"])
+        for student in self.followed_by:
+            student.notifications_stack.push(["Placement deleted from company '" + self.username  + "'", "Deleted placement", datetime.today().strftime("%Y-%m-%d"), "Deleted placement '" + title + "' from company '" + self.username + "'"])
         # retrive current placement
         current_placement = self.placements[title]
         # remove from the Placement.global_placements dictionary and the Placement.subject_trie
@@ -82,6 +114,7 @@ class Company(User):
         # remove company.placements
         del self.placements[title]
         
+# testing data 
 if __name__ == "__main__":
     _, new_company = User.register("name@email.com", "username", "password123!", False)
     new_placement = new_company.create_new_placement("Title", "Description", DateRange(Date(1,1,1), Date(2,2,2)), LocationTag("Berkshire"), [])

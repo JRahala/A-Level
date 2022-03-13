@@ -1,5 +1,5 @@
 {% extends 'template.html' %}
-{% set title = 'Register/Login' %}
+{% set title = 'Homepage' %}
 
 {% block content %}
 
@@ -85,8 +85,6 @@
             
             <!-- subject tags displayed -->
             <div class = "col-6 mt-3" id="subjectTagList">
-                <span class="badge rounded-pill bg-secondary me-1 subject-tag"> Mathematics </span>
-                <span class="badge rounded-pill bg-secondary me-1 subject-tag"> Biology </span>
             </div>
 
         </div>
@@ -136,33 +134,6 @@ socket.on("refreshEvent", function(){
     // redirect the user to current page
     window.location.href = "http://localhost:8080/homepage/";
 })
-
-// return placement data from placement element in JSON format
-function placementElementToJSON(placementElement){
-    let placementTitle = placementElement.getElementsByClassName("placement-title")[0].innerText;
-    let placementDescription = placementElement.getElementsByClassName("placement-description")[0].innerText;
-    let placementStartDate = placementElement.getElementsByClassName("start-date")[0].innerText;
-    let placementEndDate = placementElement.getElementsByClassName("end-date")[0].innerText;
-    let placementSubjectTagElements = placementElement.getElementsByClassName("subject-tag"); 
-    let placementLocationTag = placementElement.getElementsByClassName("placement-location")[0].innerText;
-
-    // retrieve the strings from subject tags
-    let placementSubjectTags = [];
-    for (let i=0; i<placementSubjectTagElements.length; i++){
-        let placementSubjectTag = placementSubjectTagElements[i].innerText;
-        placementSubjectTags.push(placementSubjectTag)
-    }
-
-    // return JSON element
-    return {
-        placementTitle: placementTitle,
-        placementDescription: placementDescription,
-        placementStartDate: placementStartDate,
-        placementEndDate: placementEndDate,
-        placementSubjectTags: placementSubjectTags,
-        placementLocationTag: placementLocationTag
-    }
-}
 
 // send request to delete placement to the server
 function deletePlacementForm(element){
@@ -285,6 +256,8 @@ function editPlacement(){
     // get JSON form data 
     let JSON_form = collectPlacementData();
     console.log(JSON_form);
+    // send form to server
+    socket.emit("editPlacementForm", JSON_form);
 }
 
 // request user username
@@ -302,82 +275,35 @@ socket.on("returnUserUsername", function(username){
 
 // handle the placements [json]
 socket.on("returnUserPlacements", function(placementsList){
+    // get parent element
+    let placementsContainer = document.getElementById("placements-container");
+    placementsContainer.innerHTML = "";
     // for each placement, create new element, add to container
     for (let i=0; i < placementsList.length; i++){
-        // get parent element
-        let placementsContainer = document.getElementById("placements-container");
         // create new element from data in list
         let currentPlacementData = placementsList[i];
-        let currentPlacementElement = placementElement(currentPlacementData);
+        let currentPlacementHTML = placementElement(currentPlacementData);
+        // create new button for messaging
+        currentPlacementHTML.getElementsByClassName("msg-button")[0].style.display = "";
         // add new element to placement list container HTML
-        placementsContainer.appendChild(currentPlacementElement);
+        placementsContainer.appendChild(currentPlacementHTML);
     }
 })
 
-// render json summary into placement element
-function placementElement(placementData){
+// create message group
+function messagePlacement(element){
+    // retrieve data from clicked element
+    let placementElement = element.parentNode.parentNode;
+    let placementJSON = placementElementToJSON(placementElement);
 
-    // create element
-    let newPlacementElement = document.createElement("div");
-    newPlacementElement.classList = "card mb-3";
-    newPlacementElement.innerHTML = placementTemplate;
-
-    // fill information
-    newPlacementElement.getElementsByClassName("start-date")[0].innerText = placementData.date_range_tag.start_date;
-    newPlacementElement.getElementsByClassName("end-date")[0].innerText = placementData.date_range_tag.end_date;
-    newPlacementElement.getElementsByClassName("company-name")[0].innerText = placementData.company;
-
-    newPlacementElement.getElementsByClassName("placement-location")[0].innerText = placementData.location_tag;
-    newPlacementElement.getElementsByClassName("placement-title")[0].innerText = placementData.title;
-    newPlacementElement.getElementsByClassName("placement-description")[0].innerText = placementData.description;
-
-    // loop for each subject tag in placement
-    for (let i=0; i < placementData.subject_tags.length; i++){
-        let subjectTagElement = document.createElement("span");
-        subjectTagElement.classList = "badge rounded-pill bg-secondary me-1 subject-tag";
-        subjectTagElement.innerText = placementData.subject_tags[i];
-        newPlacementElement.getElementsByClassName("subject-tags")[0].appendChild(subjectTagElement);
-    }
-
-    return newPlacementElement;
-
+    // send placement data for new messages
+    socket.emit("messagePlacement", placementJSON);
 }
 
-
-// placement element template
-let placementTemplate = `
-
-<div class="card-header">
-    <div class="row">
-        <div class="col-8">
-            <h5><span class="placement-title"></span></h5>
-        </div>
-        <div class="col-4 text-end">
-            <span class="start-date"> </span> - <span class="end-date"></span>
-        </div>
-    </div>
-</div>
-
-<div class="card-body">
-    <h5 class="card-title"><span class="company-name"></span></h5>
-    <p class="card-text">
-        <span class="placement-description">
-    </p>
-
-    <a href="#" class="btn btn-primary me-2" onclick="loadPlacementToForm(this)">Edit <i class="bi bi-pencil-square"></i></a>
-    <a href="#" class="btn btn-danger me-2" onclick="deletePlacementForm(this)">Delete <i class="bi bi-trash-fill"></i></a>
-    <a href="#" class="btn btn-success me-2">Save <i class="bi bi-bookmark-plus-fill"></i></a>
-
-    <!--a href="#" class="btn btn-primary me-2">Apply</a-->
-</div>
-
-<div class="card-footer">
-    <span class="badge rounded-pill bg-dark me-1"><span class="placement-location"></span></span>
-    <span class="subject-tags"></span>
-</div>
-
-`
-
+// on messaging group creation, forward to messages page
+socket.on("forwardMessages", function(){
+    window.location.href = "http://localhost:8080/messages/";
+})
 </script>
 
 

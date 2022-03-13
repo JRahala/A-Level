@@ -1,0 +1,97 @@
+{% extends 'template.html' %}
+{% set title = 'Company Page' %}
+{% block content %}
+<div class="row">
+
+    <h1 class="mt-3">
+        <span id="companyName">{{username}}</span>
+        <button class="btn btn-primary me-2" id="companyFollowButton" onclick = toggleFollow()> Follow <i class="bi bi-person-plus-fill"></i> </button> 
+    </h1> 
+    <h4 class="text-muted"> <span id="companyEmail">Company@email.com</span> </h4>
+    <hr class="mt-2">
+
+    <div class="container overflow-hidden">
+    <div class="row" id="placementContainer">
+
+        <!-- recent placements go here -->
+    
+    </div>
+    </div>
+
+
+</div>
+
+<script>
+
+// send message to retrieve copmany details
+function retrieveCompanyDetails(){
+    // get company username
+    let company_name = document.getElementById("companyName").innerText;
+    // emit request
+    socket.emit("retrieveCompanyPage", {"username": company_name});
+}
+
+// on return of company details
+socket.on("retrievedCompanyPage", function(data){
+    console.log(data);
+    // fill username in
+    document.getElementById("companyName").innerText = data["username"];
+    // fill email in 
+    document.getElementById("companyEmail").innerText = data["email"];
+    // fill placements in 
+    let placements = data["placements"];
+    let placementContainer = document.getElementById("placementContainer");
+    // for each placement, load in placement element to container
+    for (let index = 0; index < placements.length; index++){
+        // get current placement
+        let currentPlacement = placements[index];
+        // create placement HTML element
+        let currentPlacementElement = placementElement(currentPlacement);
+        // wrap placement element in divs for formatting
+        let formattedElement = document.createElement("div");
+        formattedElement.classList = "col-6";
+        // format element so that contains a half - row
+        currentPlacementElement.classList = "card mb-3 col-12";
+        formattedElement.appendChild(currentPlacementElement);
+        // add placement to container
+        placementContainer.appendChild(formattedElement);
+    }
+})
+
+// request the followed / unfollowed status of current company
+function retrieveFollowedStatus(){
+    // get username of current company 
+    socket.emit("doesFollow", {"username": document.getElementById("companyName").innerText});
+}
+
+// toggle the state of the follow button (onclick)
+function toggleFollow(element){
+    // send message to toggle the follow - server sends back followResult event (no need to change button here, done automatically)
+    socket.emit("toggleFollow", {"username": document.getElementById("companyName").innerText});
+}
+
+// on return of follow status
+socket.on("followResult", function(data){
+    console.log(data);
+    // get current follow button
+    let currentFollowButton = document.getElementById("companyFollowButton");
+    // is not being followed - display follow button
+    if (data["doesFollow"] == false){
+        currentFollowButton.classList = "btn btn-primary me-2";
+        currentFollowButton.innerHTML = `Follow <i class="bi bi-person-plus-fill"></i> `;
+    }
+    // is being followed - display unfollow button
+    else{
+        currentFollowButton.classList = "btn btn-danger me-2";
+        currentFollowButton.innerHTML = `Unfollow <i class="bi bi-person-x-fill"></i> `;
+    }
+})
+
+// retrieve company details on page load
+document.addEventListener('DOMContentLoaded', function(){
+   retrieveCompanyDetails();
+   retrieveFollowedStatus();
+}, false);
+
+</script>
+{% endblock %}

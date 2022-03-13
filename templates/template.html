@@ -15,6 +15,148 @@
         socket.on('connect', function() {
           // socket is connected to the server
         });
+        
+        // placement element template
+        let placementTemplate = `
+
+        <div class="card-header">
+            <div class="row">
+                <div class="col-8">
+                    <h5><span class="placement-title"></span></h5>
+                </div>
+                <div class="col-4 text-end">
+                    <span class="start-date"> </span> - <span class="end-date"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <h5 class="card-title"><button type="button" class="btn btn-light" onclick=""><span class="company-name"></span></button></h5>
+            <p class="card-text">
+                <span class="placement-description">
+            </p>
+
+            <a href="#" class="btn btn-primary me-2 edit-button" onclick="loadPlacementToForm(this)">Edit <i class="bi bi-pencil-square"></i></a>
+            <a href="#" class="btn btn-danger me-2 delete-button" onclick="deletePlacementForm(this)">Delete <i class="bi bi-trash-fill"></i></a>
+            <a href="#" class="btn btn-success me-2 save-button"" onclick="savePlacement(this)">Save <i class="bi bi-bookmark-plus-fill"></i></a>
+
+            <a href="#" class="btn btn-primary me-2 apply-button" style="display:none" onclick="applyPlacement(this)">Apply <i class="bi bi-briefcase-fill"></i></a>
+            <a href="#" class="btn btn-dark me-2 msg-button" style="display:none" onclick="messagePlacement(this)">Message <i class="bi bi-chat-dots-fill"></i></a>
+        </div>
+
+        <div class="card-footer">
+            <span class="badge rounded-pill bg-dark me-1"><span class="placement-location"></span></span>
+            <span class="subject-tags"></span>
+        </div>
+
+        `
+        
+      // return placement data from placement element in JSON format
+      function placementElementToJSON(placementElement){
+          let placementTitle = placementElement.getElementsByClassName("placement-title")[0].innerText;
+          let placementDescription = placementElement.getElementsByClassName("placement-description")[0].innerText;
+          let placementStartDate = placementElement.getElementsByClassName("start-date")[0].innerText;
+          let placementEndDate = placementElement.getElementsByClassName("end-date")[0].innerText;
+          let placementSubjectTagElements = placementElement.getElementsByClassName("subject-tag"); 
+          let placementLocationTag = placementElement.getElementsByClassName("placement-location")[0].innerText;
+          let placementCompanyName = placementElement.getElementsByClassName("company-name")[0].innerText;
+
+          // retrieve the strings from subject tags
+          let placementSubjectTags = [];
+          for (let i=0; i<placementSubjectTagElements.length; i++){
+              let placementSubjectTag = placementSubjectTagElements[i].innerText;
+              placementSubjectTags.push(placementSubjectTag)
+          }
+
+          // return JSON element
+          return {
+              placementTitle: placementTitle,
+              placementDescription: placementDescription,
+              placementStartDate: placementStartDate,
+              placementEndDate: placementEndDate,
+              placementSubjectTags: placementSubjectTags,
+              placementLocationTag: placementLocationTag,
+              placementCompanyName: placementCompanyName
+          }
+      }
+
+
+        // render json summary into placement element
+        function placementElement(placementData){
+
+          // create element
+          let newPlacementElement = document.createElement("div");
+          newPlacementElement.classList = "card mb-3";
+          newPlacementElement.innerHTML = placementTemplate;
+
+          // fill information
+          newPlacementElement.getElementsByClassName("start-date")[0].innerText = placementData.date_range_tag.start_date;
+          newPlacementElement.getElementsByClassName("end-date")[0].innerText = placementData.date_range_tag.end_date;
+          newPlacementElement.getElementsByClassName("company-name")[0].innerText = placementData.company;
+
+          newPlacementElement.getElementsByClassName("placement-location")[0].innerText = placementData.location_tag;
+          newPlacementElement.getElementsByClassName("placement-title")[0].innerText = placementData.title;
+          newPlacementElement.getElementsByClassName("placement-description")[0].innerText = placementData.description;
+
+                  
+          newPlacementElement.getElementsByClassName("card-title")[0].getElementsByTagName("button")[0].onclick = function(){
+            window.location = "/company/" + placementData.company;
+          }
+
+          // loop for each subject tag in placement
+          for (let i=0; i < placementData.subject_tags.length; i++){
+              let subjectTagElement = document.createElement("span");
+              subjectTagElement.classList = "badge rounded-pill bg-secondary me-1 subject-tag";
+              subjectTagElement.innerText = placementData.subject_tags[i];
+              newPlacementElement.getElementsByClassName("subject-tags")[0].appendChild(subjectTagElement);
+          }
+
+          // if isStudent, show the apply button, hide edit button, hide delete button
+          if (isStudent == true){
+            newPlacementElement.getElementsByClassName("apply-button")[0].style.display = "";
+            newPlacementElement.getElementsByClassName("edit-button")[0].style.display = "none";
+            newPlacementElement.getElementsByClassName("delete-button")[0].style.display = "none";
+          }
+
+          return newPlacementElement;
+
+        }
+
+        // check if current user is student or not 
+        socket.emit("isStudent")
+        var isStudent = true;
+
+        function changeStudent(response){
+          isStudent = response;
+        }
+
+        socket.on("recieveStudent", function(response){
+          // update if user is student
+          changeStudent(response);
+        })
+
+        // apply to placement
+        function applyPlacement(element){
+          // retrieve data from clicked element
+          let placementElement = element.parentNode.parentNode;
+          let placementJSON = placementElementToJSON(placementElement);
+
+          // send placement title to server for deletion
+          socket.emit("applyPlacement", placementJSON);
+        }
+
+        // send request to save placement element to the server
+        function savePlacement(element){
+            // retrieve data from clicked element
+            let placementElement = element.parentNode.parentNode;
+            let placementJSON = placementElementToJSON(placementElement);
+
+            // send placement title and company name to the server
+            socket.emit("savePlacement", placementJSON);
+        }
+
+
+
     </script>
 
   </head>
@@ -28,30 +170,19 @@
         <div class="collapse navbar-collapse" id="navbarNavDropdown">
         <ul class="navbar-nav">
             <li class="nav-item ms-2">
-            <a class="nav-link active" aria-current="page" href="#">Home feed</a>
+            <a class="nav-link active" aria-current="page" href="/homepage">Home feed</a>
             </li>
             <li class="nav-item ms-2">
-            <a class="nav-link" href="#">Saved placements</a>
+            <a class="nav-link" href="/saved_placements">Saved placements</a>
             </li>
             <li class="nav-item ms-2">
-                <a class="nav-link" href="#">Messages <span id="message-count">[4]</span></a>
+                <a class="nav-link" href="/messages">Messages <span id="message-count"></span></a>
             </li>
             <li class="nav-item ms-2">
-            <a class="nav-link" href="#">Notifications <span id="notification-count">[5]</span></a>
+            <a class="nav-link" href="/notifications">Notifications <span id="notification-count"></span></a>
             </li>
             <li class="nav-item ms-5">
-            <a class="nav-link" href="#">Work experience search engine</a>
-            </li>
-            <li class="nav-item ms-2">
-                <div class="input-group">
-                <input type="text" class="form-control" aria-label="General search" placeholder="Search for ...">
-                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">Search</button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="#">Work Experience</a></li>
-                    <li><a class="dropdown-item" href="#">Company</a></li>
-                    <li><a class="dropdown-item" href="#">All</a></li>
-                </ul>
-                </div>
+            <a class="nav-link" href="/search">Work experience search engine</a>
             </li>            
         </ul>
         </div>

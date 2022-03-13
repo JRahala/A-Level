@@ -1,0 +1,319 @@
+{% extends 'template.html' %}
+{% set title = 'Search placements' %}
+
+{% block content %}
+
+<div class="row">
+
+    <h1 class="mt-3">
+        Search placements
+    </h1>
+    <p class="text-muted"> Search for relevant placements by entering subject tags, location tags, ranges and the dates you would like to find placements for. <br> * Leave filters empty to ignore them </p> 
+    <hr>
+    
+    <div class="row input-group" id="searchParameters">
+
+        <!-- drop down subject tag menu -->
+        <div class="col-4">
+            <label for="subject tag" class="form-label">Subject tag</label> 
+            <div class="row">
+            <div class="col-10">
+                <input class="form-control" list="subjectTags" id="subjectTagInput" placeholder="Type to add subject tags..." aria-describedby="subject tag">
+                <datalist id="subjectTags">
+                </datalist>
+            </div>
+            <div class="col-2">
+                <button class="btn btn-primary me-2" onclick = "addSubjectTag()"> <i class="bi bi-plus-square-fill"></i> </button>
+            </div>
+            </div>
+            <div class="form-text">
+                What subject-areas do you want your work experience to involve?
+            </div>
+            <div id = "subjectTagsSelected">                
+            </div>
+        </div>
+
+        <div class = "col-4">
+            <div class="row">
+            <!-- drop down location tags menu -->
+            <div class = "col-7">
+                <label for="location tag" class="form-label">Location tag</label>   
+                <input class="form-control" list="locationTags" id="locationTagInput" placeholder="Type to add location tag..." aria-describedby="location tag">
+                <datalist id="locationTags">
+                </datalist>                     
+                <div class="form-text">
+                    Please input where you would like to search for work experiences
+                </div>
+            </div>
+
+            <!-- integer input for location range -->
+            <div class = "col-5">
+                 <label for="location range" class="form-label">Location Range</label>
+                 <input type="number" id="locationRangeInput" class="form-control" aria-describedby="location range", placeholder=0>
+                 <div class="form-text">
+                     How many kilometers away from your location are you willing to travel?
+                 </div>
+            </div>
+            </div>
+
+         </div>
+
+        
+        <div class = "col-4">
+            <div class = "row">
+               <!-- starting date input -->
+                <div class = "col-auto">
+                    <label for="placement start date" class="form-label">Start Date</label>
+                    <input type="date" id="startDateInput" class="form-control" aria-describedby="placement start date">
+                    <div class="form-text">
+                        Start date of work experience
+                    </div>
+                </div>
+
+                <!-- ending date input -->
+                <div class = "col-auto">
+                    <label for="placement end date" class="form-label">End Date</label>
+                    <input type="date" id="endDateInput" class="form-control" aria-describedby="placement end date">
+                    <div class="form-text">
+                        End date of work experience
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="row mt-4">
+    <button class="col-10 btn btn-primary" onclick="searchPlacements()"> Search for placements <i class="bi bi-search"></i> </button>
+    <div class="col-2 dropdown">
+        <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="dropdownMenuLink" data-bs-toggle="dropdown" aria-expanded="false">
+          Sort by...
+        </a>
+      
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuLink">
+            <li><a class="dropdown-item" href="#" onclick="sortPlacement(getStartDate, true)"> Earliest Start-Date </a></li>
+            <li><a class="dropdown-item" href="#" onclick="sortPlacement(getStartDate, false)"> Latest Start-Date </a></li>
+            <li><a class="dropdown-item" href="#" onclick="sortPlacement(getEndDate, true)"> Earliest End-Date </a></li>
+            <li><a class="dropdown-item" href="#" onclick="sortPlacement(getEndDate, false)"> Latest End-Date </a></li>
+            <li><a class="dropdown-item" href="#" onclick="sortPlacement(getCompanyName, true)"> Company Name (a -> z) </a></li>
+            <li><a class="dropdown-item" href="#" onclick="sortPlacement(getCompanyName, false)"> Company Name (z -> a) </a></li>
+        </ul>
+    </div>
+    </div>   
+
+    <hr class="mt-4">
+
+    <div id="searchResults">
+
+    </div>
+
+</div>
+
+<script>
+
+// request array of subject tag strings from the server
+function getSubjectTags(){
+    socket.emit("getSubjectTags");
+}
+
+// create datalist option HTML from subject tag
+function createDatalistOption(optionValue){
+    let newOption = document.createElement("option");
+    newOption.value = optionValue;
+    return newOption
+}
+
+// load the subject search bar with strings
+socket.on("loadSubjectTagSearchbar", function(subjectTags){
+    // get container of subject tag options 
+    let subjectTagsContainer = document.getElementById("subjectTags");
+    // iterate through subject tags
+    for (let index = 0; index < subjectTags.length; index++){
+        // create html of current subject tag
+        let currentSubjectTag = subjectTags[index];
+        let currentSubjectTagHTML = createDatalistOption(currentSubjectTag);
+        // add to the subject tag input 
+        subjectTagsContainer.appendChild(currentSubjectTagHTML);
+    }
+})
+
+// request array of location strings from the server
+function getLocationTags(){
+    socket.emit("getLocationTags");
+}
+
+// load the location search bar with strings
+socket.on("loadLocationTagSearchbar", function(locationTags){
+    // get container of location tag options
+    let locationTagsContainer = document.getElementById("locationTags");
+    // iterate through location tags
+    for (let index = 0; index < locationTags.length; index++){
+        // create html of location tag
+        let currentLocationTag = locationTags[index];
+        let currentLocationTagHTML = createDatalistOption(currentLocationTag);
+        // add to the location tag input
+        locationTagsContainer.appendChild(currentLocationTagHTML);
+    }
+})
+
+// request when document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+   getSubjectTags();
+   getLocationTags();
+}, false);
+
+// list of subject tags
+let subjectTags = [];
+
+// when + button pressed
+function addSubjectTag(){
+    // get text input from subject tag field
+    let subjectTagString = document.getElementById("subjectTagInput").value;
+    // create badge element from string
+    let badgeElement = document.createElement("span");
+    // style badge element using bootstrap
+    badgeElement.classList = "badge bg-secondary ms-2";
+    // set text input to badge innerText
+    badgeElement.innerText = subjectTagString;
+    // add badge element to badge container
+    let badgeContainer = document.getElementById("subjectTagsSelected");
+    badgeContainer.appendChild(badgeElement);
+    // add subject tag to list of subject tags
+    subjectTags.push(subjectTagString);
+}
+
+// return JSON of inputs
+function searchInputsJSON(){
+
+    let locationTag = document.getElementById("locationTagInput").value;
+    let locationRange = document.getElementById("locationRangeInput").value;
+    let startDate = document.getElementById("startDateInput").value;
+    let endDate = document.getElementById("endDateInput").value;
+
+    return {
+        subjectTags: subjectTags,
+        locationTag: locationTag,
+        locationRange: locationRange,
+        startDate: startDate,
+        endDate: endDate
+    }
+}
+
+// when search button is pressed
+function searchPlacements(){
+    // gather inputs in JSON format
+    let searchJSON = searchInputsJSON();
+    // send search request to server
+    socket.emit("searchPlacements", searchJSON);
+    console.log(searchJSON);
+}
+
+// on search response from server
+socket.on("searchResponse", function(placementsList){
+    console.log(placementsList);
+    // placement results container HTML element
+    let placementContainer = document.getElementById("searchResults");
+    // clear any previous results
+    placementContainer.innerHTML = "";
+    // iterate through placements
+    for (let index = 0; index < placementsList.length; index++){
+        // retrieve current placement
+        let currentPlacement = placementsList[index];
+        // get placement HTML
+        let currentPlacementHTML = placementElement(currentPlacement);
+        console.log(currentPlacementHTML);
+        console.log(currentPlacementHTML.getElementsByClassName("edit-button"));
+        console.log(currentPlacementHTML.getElementsByClassName("edit-button")[0]);
+        // remove ability to edit or delete
+        currentPlacementHTML.getElementsByClassName("edit-button")[0].style.display = "none";
+        currentPlacementHTML.getElementsByClassName("delete-button")[0].style.display = "none";
+        // add placement to placementContainer
+        placementContainer.appendChild(currentPlacementHTML)
+    }
+})
+
+// sort placements array
+function mergesort(arr, comparisonFunction, ascending){
+    // base case
+    if (arr.length <= 1){
+        return arr;
+    }
+    else{
+        // sort left half
+        let sortedLeft = mergesort(arr.slice(0, arr.length / 2), comparisonFunction, ascending);
+        // sort right half
+        let sortedRight = mergesort(arr.slice(arr.length / 2, arr.length), comparisonFunction, ascending);
+        // combine for full sorted
+        let fullSorted = [];
+        let i = 0;
+        let j = 0;
+        // iterate until left / right array is completely filled into complete array
+        while (i < sortedLeft.length && j < sortedRight.length){
+            if (comparisonFunction(sortedLeft[i],sortedRight[j]) == ascending){
+                fullSorted.push(sortedLeft[i]);
+                i += 1;
+            } else {
+                fullSorted.push(sortedRight[j]);
+                j += 1;
+            }
+        }
+        // if any remaining elements add to sorted
+        if (i != sortedLeft.length){
+            while (i < sortedLeft.length){
+                fullSorted.push(sortedLeft[i]);
+                i += 1;
+            }
+        } 
+        // if any remaining elements add to sorted
+        if (j != sortedRight.length){
+            while (j < sortedRight.length){
+                fullSorted.push(sortedRight[j]);
+                j += 1;
+            }
+        }
+        // return sorted array
+        return fullSorted;
+    }
+}
+
+function getStartDate(placementElement){
+    return placementElement.getElementsByClassName("start-date")[0].innerText;
+}
+
+function getEndDate(placementElement){
+    return placementElement.getElementsByClassName("end-date")[0].innerText;
+}
+
+function getCompanyName(placementElement){
+    console.log(placementElement);
+    return placementElement.getElementsByClassName("company-name")[0].innerText;
+}
+
+// sort all placements on 
+function sortPlacement(comparisonFunction, ascending){
+    // get all placements
+    let allPlacements = document.getElementById("searchResults").getElementsByClassName("card");
+    placementArr = [];
+    for (let index = 0; index < allPlacements.length; index++){
+        placementArr.push(allPlacements[index]);
+    }
+    console.log(placementArr);
+    // store sorted placements
+    let sortedPlacements = mergesort(placementArr, comparisonFunction, ascending);
+    // get placement results container
+    let placementContainer = document.getElementById("searchResults");
+    // remove all old placements and replace with new ones
+    placementContainer.innerHTML = "";
+    // render all placements
+    for (let index = 0; index < sortedPlacements.length; index++){
+        placementContainer.appendChild(sortedPlacements[index]);
+    }
+    console.log(sortedPlacements);
+}
+
+// functions called on page loaded
+document.addEventListener('DOMContentLoaded', function(){
+}, false);
+</script>
+
+{% endblock %}
